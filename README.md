@@ -2,6 +2,8 @@
 
 Standalone SFTP / FTP / FTPS sync for VS Code — a visual account manager, sync-status file trees, a full compare view, and a transfer queue with real progress. Built for the classic workflow of administering a live site from your editor.
 
+![SFTP Companion](screenshots/Screenshot1.png)
+
 ## Features
 
 - **Works with SFTP, FTPS, and plain FTP** — one protocol dropdown, correct ports filled in automatically, clear errors when protocol and port don't match.
