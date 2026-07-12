@@ -1,0 +1,822 @@
+{
+  "name": "sftp-companion",
+  "displayName": "SFTP Companion",
+  "description": "Visual SFTP account manager, sync queue, and folder-scoped deployment companion for VS Code",
+  "version": "0.9.0",
+  "publisher": "coolshrimp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Coolshrimp/sftp-companion.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Coolshrimp/sftp-companion/issues"
+  },
+  "homepage": "https://github.com/Coolshrimp/sftp-companion#readme",
+  "icon": "media/sftp-icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "sftp",
+    "ftp",
+    "ftps",
+    "deployment",
+    "sync",
+    "upload",
+    "remote",
+    "ssh"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sftpCompanion",
+          "title": "SFTP Sync",
+          "icon": "media/sftp-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "sftpCompanion": [
+        {
+          "id": "sftpCompanionMain",
+          "name": "SFTP Companion",
+          "type": "tree",
+          "icon": "$(dashboard)"
+        },
+        {
+          "id": "sftpCompanionLocal",
+          "name": "Local Sync",
+          "type": "tree",
+          "icon": "$(folder)"
+        },
+        {
+          "id": "sftpCompanionRemote",
+          "name": "Remote Files",
+          "type": "tree",
+          "icon": "$(cloud)"
+        },
+        {
+          "id": "sftpCompanionQueue",
+          "name": "Transfer Queue",
+          "type": "tree",
+          "icon": "$(sync)",
+          "visibility": "collapsed"
+        },
+        {
+          "id": "sftpCompanionLog",
+          "name": "Log Feed",
+          "type": "tree",
+          "icon": "$(output)",
+          "visibility": "collapsed"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "sftpCompanionRemote",
+        "contents": "No SFTP account configured yet.\n[Manage SFTP Account](command:sftpCompanion.accounts.open)",
+        "when": "!sftpCompanion.configured"
+      },
+      {
+        "view": "sftpCompanionRemote",
+        "contents": "Not connected to the server.\n[Connect](command:sftpCompanion.connect)",
+        "when": "sftpCompanion.configured && !sftpCompanion.connected"
+      },
+      {
+        "view": "sftpCompanionLocal",
+        "contents": "Configure an SFTP account to browse and sync a local folder.\n[Manage SFTP Account](command:sftpCompanion.accounts.open)",
+        "when": "!sftpCompanion.configured"
+      },
+      {
+        "view": "sftpCompanionQueue",
+        "contents": "No transfers yet. Uploads and downloads appear here with retry controls."
+      }
+    ],
+    "commands": [
+      {
+        "command": "sftpCompanion.accounts.open",
+        "title": "Manage SFTP Account",
+        "category": "SFTP Companion",
+        "icon": "$(account)"
+      },
+      {
+        "command": "sftpCompanion.openConfig",
+        "title": "Edit sftp.json",
+        "category": "SFTP Companion",
+        "icon": "$(json)"
+      },
+      {
+        "command": "sftpCompanion.refreshLocal",
+        "title": "Refresh Local Files",
+        "category": "SFTP Companion",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "sftpCompanion.deleteRemote",
+        "title": "Delete from Server…",
+        "category": "SFTP Companion",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "sftpCompanion.testConnection",
+        "title": "Test Connection",
+        "category": "SFTP Companion",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "sftpCompanion.setAutoSyncMode",
+        "title": "Set Auto Sync Mode",
+        "category": "SFTP Companion",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "sftpCompanion.accounts.generateConfig",
+        "title": "Generate / Update sftp.json",
+        "category": "SFTP Companion",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "sftpCompanion.connect",
+        "title": "Connect",
+        "category": "SFTP Companion",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "sftpCompanion.disconnect",
+        "title": "Disconnect",
+        "category": "SFTP Companion",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "sftpCompanion.refreshRemote",
+        "title": "Refresh Remote Files",
+        "category": "SFTP Companion",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "sftpCompanion.revealSyncFolder",
+        "title": "Reveal Sync Folder",
+        "category": "SFTP Companion",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "sftpCompanion.toggleWhitelistTag",
+        "title": "Add / Remove from Sync List",
+        "category": "SFTP Companion",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "sftpCompanion.toggleIgnore",
+        "title": "Ignore / Un-ignore (Exclude from Sync)",
+        "category": "SFTP Companion",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "sftpCompanion.openSyncCenter",
+        "title": "Open Sync Center",
+        "category": "SFTP Companion",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "sftpCompanion.openSetupGuide",
+        "title": "Open Setup Guide",
+        "category": "SFTP Companion",
+        "icon": "$(book)"
+      },
+      {
+        "command": "sftpCompanion.switchProfile",
+        "title": "Switch Server Profile",
+        "category": "SFTP Companion",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "sftpCompanion.renameRemote",
+        "title": "Rename / Move on Server…",
+        "category": "SFTP Companion",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "sftpCompanion.newRemoteFile",
+        "title": "New File on Server…",
+        "category": "SFTP Companion",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "sftpCompanion.newRemoteFolder",
+        "title": "New Folder on Server…",
+        "category": "SFTP Companion",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "sftpCompanion.chmodRemote",
+        "title": "Change Permissions (chmod)…",
+        "category": "SFTP Companion",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "sftpCompanion.pauseQueueItem",
+        "title": "Pause Transfer",
+        "category": "SFTP Companion",
+        "icon": "$(debug-pause)"
+      },
+      {
+        "command": "sftpCompanion.stopQueueItem",
+        "title": "Stop Transfer",
+        "category": "SFTP Companion",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "sftpCompanion.resumeQueueItem",
+        "title": "Resume Transfer",
+        "category": "SFTP Companion",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "sftpCompanion.pauseQueue",
+        "title": "Pause Transfer Queue",
+        "category": "SFTP Companion",
+        "icon": "$(debug-pause)"
+      },
+      {
+        "command": "sftpCompanion.resumeQueue",
+        "title": "Resume Transfer Queue",
+        "category": "SFTP Companion",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "sftpCompanion.uploadFile",
+        "title": "Upload to Server",
+        "category": "SFTP Companion",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "sftpCompanion.uploadFolder",
+        "title": "Upload Folder to Server",
+        "category": "SFTP Companion",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "sftpCompanion.downloadFile",
+        "title": "Download from Server",
+        "category": "SFTP Companion",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "sftpCompanion.downloadFolder",
+        "title": "Download Folder from Server",
+        "category": "SFTP Companion",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "sftpCompanion.compareFile",
+        "title": "Compare Local ↔ Remote",
+        "category": "SFTP Companion",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "sftpCompanion.syncResource",
+        "title": "Smart Sync (Compare & Choose)",
+        "category": "SFTP Companion",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "sftpCompanion.openRemoteFile",
+        "title": "Open Remote File for Edit",
+        "category": "SFTP Companion",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "sftpCompanion.retryQueueItem",
+        "title": "Retry Transfer",
+        "category": "SFTP Companion",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "sftpCompanion.removeQueueItem",
+        "title": "Remove from Queue",
+        "category": "SFTP Companion",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "sftpCompanion.clearCompletedTransfers",
+        "title": "Clear Completed Transfers",
+        "category": "SFTP Companion",
+        "icon": "$(clear-all)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "sftpCompanion.accounts.open",
+          "when": "view == sftpCompanionMain",
+          "group": "navigation@1"
+        },
+        {
+          "command": "sftpCompanion.openSetupGuide",
+          "when": "view == sftpCompanionMain",
+          "group": "navigation@2"
+        },
+        {
+          "command": "sftpCompanion.connect",
+          "when": "view == sftpCompanionRemote",
+          "group": "navigation@1"
+        },
+        {
+          "command": "sftpCompanion.disconnect",
+          "when": "view == sftpCompanionRemote",
+          "group": "navigation@2"
+        },
+        {
+          "command": "sftpCompanion.refreshRemote",
+          "when": "view == sftpCompanionRemote",
+          "group": "navigation@3"
+        },
+        {
+          "command": "sftpCompanion.refreshLocal",
+          "when": "view == sftpCompanionLocal",
+          "group": "navigation@1"
+        },
+        {
+          "command": "sftpCompanion.revealSyncFolder",
+          "when": "view == sftpCompanionLocal",
+          "group": "navigation@2"
+        },
+        {
+          "command": "sftpCompanion.openSyncCenter",
+          "when": "view == sftpCompanionQueue",
+          "group": "navigation@1"
+        },
+        {
+          "command": "sftpCompanion.pauseQueue",
+          "when": "view == sftpCompanionQueue && !sftpCompanion.queuePaused",
+          "group": "navigation@2"
+        },
+        {
+          "command": "sftpCompanion.resumeQueue",
+          "when": "view == sftpCompanionQueue && sftpCompanion.queuePaused",
+          "group": "navigation@2"
+        },
+        {
+          "command": "sftpCompanion.clearCompletedTransfers",
+          "when": "view == sftpCompanionQueue",
+          "group": "navigation@3"
+        },
+        {
+          "command": "sftpCompanion.openSyncCenter",
+          "when": "view == sftpCompanionMain",
+          "group": "navigation@0"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "sftpCompanion.connect",
+          "when": "view == sftpCompanionMain && viewItem == main-connection-off",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.disconnect",
+          "when": "view == sftpCompanionMain && viewItem == main-connection-on",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.testConnection",
+          "when": "view == sftpCompanionMain && viewItem =~ /main-connection/",
+          "group": "inline@2"
+        },
+        {
+          "command": "sftpCompanion.openConfig",
+          "when": "view == sftpCompanionMain && viewItem == main-account",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.accounts.generateConfig",
+          "when": "view == sftpCompanionMain && viewItem == main-account",
+          "group": "inline@2"
+        },
+        {
+          "command": "sftpCompanion.switchProfile",
+          "when": "view == sftpCompanionMain && viewItem == main-account",
+          "group": "inline@3"
+        },
+        {
+          "command": "sftpCompanion.setAutoSyncMode",
+          "when": "view == sftpCompanionMain && viewItem == main-autosync",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.uploadFile",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.downloadFile",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "inline@2"
+        },
+        {
+          "command": "sftpCompanion.compareFile",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "inline@3"
+        },
+        {
+          "command": "sftpCompanion.syncResource",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "inline@4"
+        },
+        {
+          "command": "sftpCompanion.uploadFile",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "1_transfer@1"
+        },
+        {
+          "command": "sftpCompanion.downloadFile",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "1_transfer@2"
+        },
+        {
+          "command": "sftpCompanion.compareFile",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "1_transfer@3"
+        },
+        {
+          "command": "sftpCompanion.syncResource",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "1_transfer@4"
+        },
+        {
+          "command": "sftpCompanion.toggleWhitelistTag",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "2_autosync@1"
+        },
+        {
+          "command": "sftpCompanion.toggleIgnore",
+          "when": "view == sftpCompanionLocal && viewItem == file",
+          "group": "2_autosync@2"
+        },
+        {
+          "command": "sftpCompanion.uploadFolder",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.downloadFolder",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "inline@2"
+        },
+        {
+          "command": "sftpCompanion.toggleWhitelistTag",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "inline@3"
+        },
+        {
+          "command": "sftpCompanion.syncResource",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "inline@4"
+        },
+        {
+          "command": "sftpCompanion.uploadFolder",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "1_transfer@1"
+        },
+        {
+          "command": "sftpCompanion.downloadFolder",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "1_transfer@2"
+        },
+        {
+          "command": "sftpCompanion.syncResource",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "1_transfer@3"
+        },
+        {
+          "command": "sftpCompanion.toggleWhitelistTag",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "2_autosync@1"
+        },
+        {
+          "command": "sftpCompanion.toggleIgnore",
+          "when": "view == sftpCompanionLocal && viewItem == folder",
+          "group": "2_autosync@2"
+        },
+        {
+          "command": "sftpCompanion.downloadFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.uploadFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "inline@2"
+        },
+        {
+          "command": "sftpCompanion.compareFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "inline@3"
+        },
+        {
+          "command": "sftpCompanion.openRemoteFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "inline@4"
+        },
+        {
+          "command": "sftpCompanion.openRemoteFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "1_transfer@1"
+        },
+        {
+          "command": "sftpCompanion.downloadFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "1_transfer@2"
+        },
+        {
+          "command": "sftpCompanion.uploadFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "1_transfer@3"
+        },
+        {
+          "command": "sftpCompanion.compareFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "1_transfer@4"
+        },
+        {
+          "command": "sftpCompanion.syncResource",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "1_transfer@5"
+        },
+        {
+          "command": "sftpCompanion.toggleWhitelistTag",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "2_autosync@1"
+        },
+        {
+          "command": "sftpCompanion.toggleIgnore",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "2_autosync@2"
+        },
+        {
+          "command": "sftpCompanion.renameRemote",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "3_manage@1"
+        },
+        {
+          "command": "sftpCompanion.chmodRemote",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "3_manage@2"
+        },
+        {
+          "command": "sftpCompanion.deleteRemote",
+          "when": "view == sftpCompanionRemote && viewItem == remote-file",
+          "group": "4_danger@1"
+        },
+        {
+          "command": "sftpCompanion.downloadFolder",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.uploadFolder",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "inline@2"
+        },
+        {
+          "command": "sftpCompanion.downloadFolder",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "1_transfer@1"
+        },
+        {
+          "command": "sftpCompanion.uploadFolder",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "1_transfer@2"
+        },
+        {
+          "command": "sftpCompanion.syncResource",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "1_transfer@3"
+        },
+        {
+          "command": "sftpCompanion.toggleWhitelistTag",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "2_autosync@1"
+        },
+        {
+          "command": "sftpCompanion.toggleIgnore",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "2_autosync@2"
+        },
+        {
+          "command": "sftpCompanion.newRemoteFile",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "3_manage@1"
+        },
+        {
+          "command": "sftpCompanion.newRemoteFolder",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "3_manage@2"
+        },
+        {
+          "command": "sftpCompanion.renameRemote",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "3_manage@3"
+        },
+        {
+          "command": "sftpCompanion.chmodRemote",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "3_manage@4"
+        },
+        {
+          "command": "sftpCompanion.deleteRemote",
+          "when": "view == sftpCompanionRemote && viewItem == remote-folder",
+          "group": "4_danger@1"
+        },
+        {
+          "command": "sftpCompanion.retryQueueItem",
+          "when": "view == sftpCompanionQueue && viewItem == transfer-failed",
+          "group": "inline@1"
+        },
+        {
+          "command": "sftpCompanion.pauseQueueItem",
+          "when": "view == sftpCompanionQueue && viewItem == transfer-queued",
+          "group": "inline@2"
+        },
+        {
+          "command": "sftpCompanion.stopQueueItem",
+          "when": "view == sftpCompanionQueue && viewItem == transfer-running",
+          "group": "inline@2"
+        },
+        {
+          "command": "sftpCompanion.resumeQueueItem",
+          "when": "view == sftpCompanionQueue && viewItem == transfer-held",
+          "group": "inline@3"
+        },
+        {
+          "command": "sftpCompanion.removeQueueItem",
+          "when": "view == sftpCompanionQueue && viewItem != transfer-running",
+          "group": "inline@4"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "sftpCompanion.uploadFile",
+          "when": "resourceScheme == file && !explorerResourceIsFolder",
+          "group": "7_sftpcompanion@1"
+        },
+        {
+          "command": "sftpCompanion.uploadFolder",
+          "when": "resourceScheme == file && explorerResourceIsFolder",
+          "group": "7_sftpcompanion@1"
+        },
+        {
+          "command": "sftpCompanion.downloadFile",
+          "when": "resourceScheme == file && !explorerResourceIsFolder",
+          "group": "7_sftpcompanion@2"
+        },
+        {
+          "command": "sftpCompanion.downloadFolder",
+          "when": "resourceScheme == file && explorerResourceIsFolder",
+          "group": "7_sftpcompanion@2"
+        },
+        {
+          "command": "sftpCompanion.compareFile",
+          "when": "resourceScheme == file && !explorerResourceIsFolder",
+          "group": "7_sftpcompanion@3"
+        },
+        {
+          "command": "sftpCompanion.syncResource",
+          "when": "resourceScheme == file",
+          "group": "7_sftpcompanion@4"
+        },
+        {
+          "command": "sftpCompanion.toggleWhitelistTag",
+          "when": "resourceScheme == file",
+          "group": "7_sftpcompanion@5"
+        },
+        {
+          "command": "sftpCompanion.toggleIgnore",
+          "when": "resourceScheme == file",
+          "group": "7_sftpcompanion@6"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "sftpCompanion.uploadFile",
+          "when": "resourceScheme == file",
+          "group": "7_sftpcompanion@1"
+        },
+        {
+          "command": "sftpCompanion.compareFile",
+          "when": "resourceScheme == file",
+          "group": "7_sftpcompanion@2"
+        },
+        {
+          "command": "sftpCompanion.syncResource",
+          "when": "resourceScheme == file",
+          "group": "7_sftpcompanion@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "sftpCompanion.deleteRemote",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.renameRemote",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.chmodRemote",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.retryQueueItem",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.removeQueueItem",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.pauseQueueItem",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.stopQueueItem",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.resumeQueueItem",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.openRemoteFile",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.uploadFolder",
+          "when": "false"
+        },
+        {
+          "command": "sftpCompanion.downloadFolder",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SFTP Companion",
+      "properties": {
+        "sftpCompanion.autoDeleteRemote": {
+          "type": "boolean",
+          "default": false,
+          "description": "DANGEROUS: when auto-sync is active and a local file inside the synced scope is deleted, also delete it from the server. Off by default."
+        },
+        "sftpCompanion.confirmRemoteDelete": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask for confirmation before deleting files or folders from the server."
+        },
+        "sftpCompanion.transferConcurrency": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "How many files transfer at the same time. Each parallel transfer uses its own server connection — lower this if your host limits simultaneous FTP/SFTP sessions. Applies immediately."
+        },
+        "sftpCompanion.tempRemoteCachePath": {
+          "type": "string",
+          "default": ".vscode/.sftp-companion-cache",
+          "description": "Relative workspace folder used for cached remote files during compare operations."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --allow-missing-repository",
+    "install-local": "powershell -Command \"$vsix=(Get-ChildItem *.vsix | Sort-Object LastWriteTime -Descending | Select-Object -First 1); if (-not $vsix) { throw 'No VSIX file found. Run npm run package first.' }; code --install-extension $vsix.FullName --force\"",
+    "deploy": "powershell -Command \"npm run package; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run install-local\"",
+    "watch:deploy": "chokidar \"src/**/*\" \"media/**/*\" \"package.json\" \"tsconfig.json\" -c \"npm run deploy\" --initial --debounce 1000"
+  },
+  "dependencies": {
+    "basic-ftp": "^6.0.1",
+    "minimatch": "^10.1.1",
+    "ssh2-sftp-client": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.15",
+    "@types/ssh2-sftp-client": "^9.0.6",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.32.0",
+    "chokidar-cli": "^3.0.0",
+    "typescript": "^5.6.3"
+  }
+}

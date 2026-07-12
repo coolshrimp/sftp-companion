@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SFTP Code Companion Icon</title>
+  <desc id="desc">A flat purple SFTP companion icon with a document, transfer code mark, and plus badge.</desc>
+
+  <rect x="20" y="20" width="216" height="216" rx="30" fill="#6424d8"/>
+
+  <path d="M68 75c0-13 10-23 23-23h61c6 0 12 2 16 7l22 22c5 4 7 10 7 16v78c0 13-10 23-23 23H91c-13 0-23-10-23-23V75Z" fill="#7b45df" stroke="#b992ff" stroke-width="4"/>
+  <path d="M148 55v39h39Z" fill="#b992ff"/>
+  <path d="M148 55v31c0 4 4 8 8 8h31" fill="none" stroke="#d9c3ff" stroke-width="3"/>
+
+  <path d="M103 124 88 137l15 13" fill="none" stroke="#8ff5ea" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M153 124 168 137l-15 13" fill="none" stroke="#8ff5ea" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M119 155 139 103" fill="none" stroke="#8ff5ea" stroke-width="10" stroke-linecap="round"/>
+
+  <circle cx="192" cy="192" r="26" fill="#ffd15f"/>
+  <path d="M192 178v28M178 192h28" fill="none" stroke="#25345b" stroke-width="8" stroke-linecap="round"/>
+</svg>
