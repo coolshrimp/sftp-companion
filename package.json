@@ -1,7 +1,7 @@
 {
   "name": "sftp-companion",
-  "displayName": "SFTP Companion",
-  "description": "Visual SFTP account manager, sync queue, and folder-scoped deployment companion for VS Code",
+  "displayName": "SFTP Companion - SFTP/FTP/FTPS Sync",
+  "description": "Visual SFTP/FTP/FTPS sync — account manager, sync-status file trees, compare view, and a transfer queue with real progress",
   "version": "0.9.0",
   "publisher": "coolshrimp",
   "license": "MIT",
