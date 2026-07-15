@@ -2,6 +2,11 @@
 
 All notable changes to **SFTP Companion**.
 
+## 0.9.2
+
+- **Much smaller, faster-loading extension** — the code is now bundled with esbuild: the package went from 603 files / 5.4 MB to 10 files / 0.4 MB, which speeds up install and activation.
+- Marketplace polish: version/installs/rating badges in the README, gallery banner color, and listed under *SCM Providers* in addition to *Other*.
+
 ## 0.9.1
 
 Security hardening release.

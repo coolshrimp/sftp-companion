@@ -1,5 +1,10 @@
 # SFTP Companion
 
+[![Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/coolshrimp.sftp-companion?label=Marketplace&color=6B4EE6)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/coolshrimp.sftp-companion?color=2DD4BF)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/coolshrimp.sftp-companion)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion&ssr=false#review-details)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Standalone SFTP / FTP / FTPS sync for VS Code — a visual account manager, sync-status file trees, a full compare view, and a transfer queue with real progress. Built for the classic workflow of administering a live site from your editor.
 
 ![SFTP Companion](screenshots/Screenshot1.png)
@@ -52,7 +57,8 @@ Everything except the password is plain, hand-editable JSON — edit the files o
 
 ```powershell
 npm install
-npm run compile      # type-check + build
+npm run check-types  # type-check with tsc
+npm run bundle       # bundle to dist/extension.js with esbuild
 npm run deploy       # package the VSIX and install it into VS Code
 npm run watch:deploy # rebuild + reinstall on every change
 ```
