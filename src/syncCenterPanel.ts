@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -502,7 +503,7 @@ export class SyncCenterPanel {
   }
 
   private getHtml(webview: vscode.Webview): string {
-    const nonce = String(Date.now());
+    const nonce = randomBytes(16).toString('base64');
     return `<!DOCTYPE html>
 <html lang="en">
 <head>

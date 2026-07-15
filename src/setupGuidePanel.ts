@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import * as vscode from 'vscode';
 
 /**
@@ -22,8 +23,10 @@ export class SetupGuidePanel {
     this.currentPanel.onDidDispose(() => {
       this.currentPanel = undefined;
     });
+    // Only the exact commands the guide's buttons use — never arbitrary ones.
+    const allowedCommands = new Set(['sftpCompanion.accounts.open', 'sftpCompanion.openSyncCenter', 'sftpCompanion.openConfig']);
     this.currentPanel.webview.onDidReceiveMessage(async (message: { command?: string }) => {
-      if (typeof message?.command === 'string' && message.command.startsWith('sftpCompanion.')) {
+      if (typeof message?.command === 'string' && allowedCommands.has(message.command)) {
         await vscode.commands.executeCommand(message.command);
       }
     });
@@ -31,7 +34,7 @@ export class SetupGuidePanel {
   }
 
   private getHtml(webview: vscode.Webview): string {
-    const nonce = String(Date.now());
+    const nonce = randomBytes(16).toString('base64');
     return `<!DOCTYPE html>
 <html lang="en">
 <head>

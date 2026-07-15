@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import * as vscode from 'vscode';
 import { ConfigService } from './configService';
 import { Logger } from './logger';
@@ -156,7 +157,7 @@ export class AccountViewProvider {
   }
 
   private getHtml(webview: vscode.Webview, profile?: SftpProfile, password?: string, passphrase?: string): string {
-    const nonce = String(Date.now());
+    const nonce = randomBytes(16).toString('base64');
     const authMode = profile?.authMode ?? 'password';
     const autoSyncMode = profile?.autoSyncMode ?? 'manual';
     const protocolValue = profile?.protocol === 'ftp' ? (profile.secure ? 'ftps' : 'ftp') : 'sftp';
@@ -265,7 +266,7 @@ export class AccountViewProvider {
           <option value="ftps" ${protocolValue === 'ftps' ? 'selected' : ''}>FTPS (FTP over TLS)</option>
         </select>
       </label>
-      <label><span class="title">Port</span><input type="number" id="port" value="${profile?.port ?? (protocolValue === 'sftp' ? 22 : 21)}" /></label>
+      <label><span class="title">Port</span><input type="number" id="port" value="${Number(profile?.port) || (protocolValue === 'sftp' ? 22 : 21)}" /></label>
       <label><span class="title">Host</span><input type="text" id="host" placeholder="example.com" value="${escapeHtml(profile?.host ?? '')}" /></label>
       <label><span class="title">Username</span><input type="text" id="username" placeholder="deploy-user" value="${escapeHtml(profile?.username ?? '')}" /></label>
     </div>
@@ -426,7 +427,8 @@ function escapeHtml(value: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function isAutoSyncMode(value: unknown): value is AutoSyncMode {

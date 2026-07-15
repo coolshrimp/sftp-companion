@@ -3,3 +3,6 @@ out/
 *.vsix
 .vscode-test/
 .vscode/.sftp-companion-cache/
+# Workspace SFTP configs hold server hosts/usernames — never commit them.
+.vscode/sftp.json
+.vscode/sftp-companion.json

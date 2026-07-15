@@ -10,6 +10,33 @@ import { LoadedProfile, RemoteNode, RemoteStat } from './types';
 
 type Logger = { append(level: 'info' | 'warn' | 'error', message: string): void };
 
+/** Persists one trusted SSH host key fingerprint per host:port. */
+export interface HostKeyStore {
+  get(hostId: string): string | undefined;
+  set(hostId: string, fingerprint: string): Promise<void> | void;
+}
+
+/**
+ * The server presented a different SSH host key than the one pinned on a
+ * previous connect. Surfaced as its own error type so the UI can offer an
+ * explicit "trust the new key" decision instead of failing opaquely.
+ */
+export class HostKeyMismatchError extends Error {
+  public constructor(
+    public readonly hostId: string,
+    public readonly knownFingerprint: string,
+    public readonly presentedFingerprint: string
+  ) {
+    super(
+      `Host key verification failed for ${hostId}: the server presented SSH key SHA256:${presentedFingerprint}, `
+      + `but SHA256:${knownFingerprint} was trusted on an earlier connect. `
+      + 'This usually means the server was reinstalled or migrated — but it can also mean the connection is being intercepted. '
+      + 'Use the Connect action to review and trust the new key.'
+    );
+    this.name = 'HostKeyMismatchError';
+  }
+}
+
 export class SftpService {
   private readonly client = new SftpClient();
   private ftpClient?: ftp.Client;
@@ -35,8 +62,14 @@ export class SftpService {
   private readonly sftpPool: Array<{ client: SftpClient; busy: boolean }> = [];
   private readonly ftpPool: Array<{ client: ftp.Client; busy: boolean }> = [];
   private readonly poolWaiters: Array<() => void> = [];
+  // Set by the host verifier when the pinned key does not match, so the
+  // generic ssh2 "verification failed" error can be replaced with a rich one.
+  private hostKeyError?: HostKeyMismatchError;
 
-  public constructor(private readonly logger: Logger) {}
+  public constructor(
+    private readonly logger: Logger,
+    private readonly hostKeys?: HostKeyStore
+  ) {}
 
   /** How many parallel transfer connections may be opened. */
   public setTransferConcurrency(count: number): void {
@@ -477,6 +510,30 @@ export class SftpService {
       readyTimeout: 15000
     };
 
+    // Pin the server's SSH host key (trust on first use, like OpenSSH's
+    // known_hosts): without this, any machine answering on that address could
+    // impersonate the server and capture the credentials.
+    if (this.hostKeys) {
+      const hostId = `${loaded.profile.host}:${loaded.profile.port}`;
+      connectionConfig.hostHash = 'sha256';
+      connectionConfig.hostVerifier = (hexHash: string): boolean => {
+        // Unpadded base64, matching how OpenSSH prints SHA256 fingerprints so
+        // users can compare against `ssh-keygen -lf` output directly.
+        const presented = Buffer.from(hexHash, 'hex').toString('base64').replace(/=+$/, '');
+        const known = this.hostKeys?.get(hostId);
+        if (!known) {
+          void this.hostKeys?.set(hostId, presented);
+          this.logger.append('info', `Pinned SSH host key for ${hostId} on first connect (SHA256:${presented}).`);
+          return true;
+        }
+        if (known === presented) {
+          return true;
+        }
+        this.hostKeyError = new HostKeyMismatchError(hostId, known, presented);
+        return false;
+      };
+    }
+
     if (loaded.profile.authMode === 'privateKey') {
       if (!loaded.profile.privateKeyPath) {
         throw new Error('Private key auth selected but no private key path is configured.');
@@ -510,9 +567,15 @@ export class SftpService {
       finish((Array.isArray(prompts) ? prompts : []).map(() => loaded.password ?? ''));
     };
     rawClient?.on('keyboard-interactive', answerKeyboardInteractive);
+    this.hostKeyError = undefined;
     try {
       await client.connect(connectionConfig);
     } catch (error) {
+      if (this.hostKeyError) {
+        const mismatch = this.hostKeyError;
+        this.hostKeyError = undefined;
+        throw mismatch;
+      }
       const message = error instanceof Error ? error.message : String(error);
       if (/authentication methods failed/i.test(message)) {
         throw new Error(`${message} — double-check the username and password for ${loaded.profile.username}@${loaded.profile.host}. If they are correct, the server may restrict SFTP logins for this account.`);

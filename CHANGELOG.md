@@ -2,6 +2,14 @@
 
 All notable changes to **SFTP Companion**.
 
+## 0.9.1
+
+Security hardening release.
+
+- **SSH host key verification** — the server's host key is now pinned on first connect (trust-on-first-use, like OpenSSH's `known_hosts`). If the key later changes, connecting fails with both fingerprints shown and an explicit *Trust New Key & Connect* decision, instead of silently accepting a possible man-in-the-middle.
+- Webview security: CSP nonces are now cryptographically random, and the Setup Guide only executes its own three known commands.
+- Smaller VSIX — screenshots and CI files are no longer packaged.
+
 ## 0.9.0
 
 - **Multiple server profiles per project** — a `profiles` block in `sftp.json` (e.g. dev/staging/production) with a one-click *Switch Server Profile* action; passwords are shared per server via the credential vault.

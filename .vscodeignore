@@ -8,3 +8,5 @@ ROADMAP.md
 package-lock.json
 .gitignore
 *.vsix
+.github/**
+screenshots/**

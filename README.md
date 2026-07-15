@@ -42,6 +42,7 @@ Everything except the password is plain, hand-editable JSON — edit the files o
 
 ## Safety rails
 
+- SFTP host keys are pinned on first connect (like SSH `known_hosts`); if the server's key ever changes you see both fingerprints and must explicitly trust the new one.
 - Auto-upload modes require modal confirmation before they turn on.
 - Bulk transfers of 25+ files ask before queueing.
 - `sftp.json` / `sftp-companion.json` can never be uploaded, regardless of settings.

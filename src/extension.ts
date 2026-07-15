@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { AccountViewProvider } from './accountViewProvider';
 import { ConfigService } from './configService';
 import { Logger } from './logger';
-import { SftpService } from './sftpService';
+import { HostKeyMismatchError, SftpService } from './sftpService';
 import { SyncActions } from './syncActions';
 import { SetupGuidePanel } from './setupGuidePanel';
 import { SyncCenterPanel } from './syncCenterPanel';
@@ -10,14 +10,47 @@ import { SyncDecorationProvider } from './syncDecorations';
 import { SyncWatcher } from './syncWatcher';
 import { TransferQueue } from './transferQueue';
 import { LocalTreeProvider, LogTreeProvider, MainTreeProvider, QueueTreeProvider, RemoteTreeProvider } from './treeProviders';
-import { AutoSyncMode, LocalNode, QueueItem, RemoteNode } from './types';
+import { AutoSyncMode, LoadedProfile, LocalNode, QueueItem, RemoteNode } from './types';
 
 type CommandInput = LocalNode | RemoteNode | vscode.Uri | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const logger = new Logger();
   const config = new ConfigService(context, logger);
-  const sftp = new SftpService(logger);
+  // Trusted SSH host key fingerprints, pinned per host:port on first connect.
+  const hostKeyStore = {
+    get: (hostId: string) => context.globalState.get<string>(`sftpCompanion.hostKey:${hostId}`),
+    set: async (hostId: string, fingerprint: string) => {
+      await context.globalState.update(`sftpCompanion.hostKey:${hostId}`, fingerprint);
+    }
+  };
+  const sftp = new SftpService(logger, hostKeyStore);
+
+  // Connect, and when the server's SSH key differs from the pinned one, show
+  // the fingerprints and let the user decide instead of failing opaquely.
+  const connectVerified = async (profile: LoadedProfile): Promise<void> => {
+    try {
+      await sftp.connect(profile);
+    } catch (error) {
+      if (!(error instanceof HostKeyMismatchError)) {
+        throw error;
+      }
+      const trustLabel = 'Trust New Key & Connect';
+      const choice = await vscode.window.showWarningMessage(
+        `SSH host key changed for ${error.hostId}`,
+        {
+          modal: true,
+          detail: `Trusted: SHA256:${error.knownFingerprint}\nPresented: SHA256:${error.presentedFingerprint}\n\nA changed key usually means the server was reinstalled or migrated — but it can also mean the connection is being intercepted. Only continue if you expected this change.`
+        },
+        trustLabel
+      );
+      if (choice !== trustLabel) {
+        throw error;
+      }
+      await hostKeyStore.set(error.hostId, error.presentedFingerprint);
+      await sftp.connect(profile);
+    }
+  };
 
   let notifyConnectionChanged: () => void = () => undefined;
   // Forward reference: the remote tree needs ensureConnected for lazy
@@ -40,7 +73,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (!profile) {
         throw new Error('No SFTP account is configured yet.');
       }
-      await sftp.connect(profile);
+      await connectVerified(profile);
       notifyConnectionChanged();
     }
   );
@@ -164,7 +197,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       return false;
     }
     try {
-      await sftp.connect(profile);
+      await connectVerified(profile);
       notifyConnectionChanged();
       return true;
     } catch (error) {
@@ -289,7 +322,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const wasConnected = sftp.connected;
       try {
         if (!wasConnected) {
-          await sftp.connect(profile);
+          await connectVerified(profile);
         }
         await sftp.list(config.resolveRemotePath(''));
         vscode.window.showInformationMessage(`Connection test succeeded for ${profile.profile.host}.`);
