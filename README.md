@@ -7,6 +7,8 @@
 
 Standalone SFTP / FTP / FTPS sync for VS Code — a visual account manager, sync-status file trees, a full compare view, and a transfer queue with real progress. Built for the classic workflow of administering a live site from your editor.
 
+**[➜ Install from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion)**
+
 ![SFTP Companion](screenshots/Screenshot1.png)
 
 ## Features
@@ -23,6 +25,12 @@ Standalone SFTP / FTP / FTPS sync for VS Code — a visual account manager, sync
 - **Remote file management** — rename/move, new file/folder, delete, and chmod with the current permissions shown, right from the Remote Files tree.
 - **Make Identical** — pick a source of truth and mirror the other side exactly (orphan deletion included), with a dry-run confirmation of the counts.
 - **Conflict guard** — auto-upload warns instead of clobbering when the server copy changed after your local edit.
+
+## Install
+
+- **Marketplace:** [SFTP Companion](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion) — hit **Install** and it opens VS Code.
+- **Inside VS Code:** Extensions panel (`Ctrl+Shift+X`) → search **SFTP Companion**.
+- **Command line:** `code --install-extension coolshrimp.sftp-companion`
 
 ## Quick start
 
