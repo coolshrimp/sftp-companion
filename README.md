@@ -1,8 +1,8 @@
 # SFTP Companion
 
-[![Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/coolshrimp.sftp-companion?label=Marketplace&color=6B4EE6)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/coolshrimp.sftp-companion?color=2DD4BF)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/coolshrimp.sftp-companion)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion&ssr=false#review-details)
+[![Marketplace Version](https://vsmarketplacebadges.dev/version/coolshrimp.sftp-companion.svg?label=Marketplace&color=6B4EE6)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion)
+[![Installs](https://vsmarketplacebadges.dev/installs/coolshrimp.sftp-companion.svg?color=2DD4BF)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion)
+[![Rating](https://vsmarketplacebadges.dev/rating-short/coolshrimp.sftp-companion.svg)](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion&ssr=false#review-details)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Standalone SFTP / FTP / FTPS sync for VS Code — a visual account manager, sync-status file trees, a full compare view, and a transfer queue with real progress. Built for the classic workflow of administering a live site from your editor.
