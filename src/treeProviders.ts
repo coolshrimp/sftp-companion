@@ -100,7 +100,7 @@ export class MainTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
       'Sync Center',
       'sftpCompanion.openSyncCenter',
       new vscode.ThemeIcon('checklist', BLUE),
-      'Full-page compare of every file on both sides plus the live transfer queue with progress, pause, and resume.'
+      'Paired Local and Server compare trees plus a compact transfer queue with progress, filters, pause, and resume.'
     );
 
     const guide = new ButtonItem(
@@ -139,7 +139,8 @@ export class LocalTreeProvider implements vscode.TreeDataProvider<LocalNode> {
 
   public async getChildren(element?: LocalNode): Promise<LocalNode[]> {
     const root = this.config.getLocalRoot();
-    if (!root) {
+    const contextKey = this.config.getOperationContextKey();
+    if (!root || !contextKey || (element && element.contextKey !== contextKey)) {
       return [];
     }
 
@@ -152,7 +153,8 @@ export class LocalTreeProvider implements vscode.TreeDataProvider<LocalNode> {
       // dramatically fewer requests and no concurrent-operation collisions.
       // Skipped inside ignored folders: their children are all ignored anyway.
       let remoteMap: Map<string, RemoteStat> | undefined;
-      if (this.sftp.connected && element?.isIgnored !== true) {
+      const activeProfile = this.config.getCurrentProfile();
+      if (activeProfile && this.sftp.isConnectedTo(activeProfile) && element?.isIgnored !== true) {
         try {
           const remoteChildren = await this.sftp.list(this.config.resolveRemotePath(element?.relativePath ?? ''));
           remoteMap = new Map(remoteChildren.map((child) => [
@@ -191,6 +193,7 @@ export class LocalTreeProvider implements vscode.TreeDataProvider<LocalNode> {
         });
         output.push({
           kind: 'local',
+          contextKey,
           fullPath,
           relativePath,
           isDirectory: entry.isDirectory(),
@@ -201,6 +204,9 @@ export class LocalTreeProvider implements vscode.TreeDataProvider<LocalNode> {
         });
       }
       const sorted = output.sort(sortNodes);
+      if (this.config.getOperationContextKey() !== contextKey) {
+        return [];
+      }
       this.recordFolderState(element, sorted);
       if (!element && this.view) {
         this.view.message = this.sftp.connected ? summarizeSyncStates(sorted) : undefined;
@@ -302,7 +308,12 @@ export class RemoteTreeProvider implements vscode.TreeDataProvider<RemoteNode> {
   }
 
   public async getChildren(element?: RemoteNode): Promise<RemoteNode[]> {
-    if (!this.sftp.connected) {
+    const contextKey = this.config.getOperationContextKey();
+    const profile = this.config.getCurrentProfile();
+    if (!contextKey || !profile || (element && element.contextKey !== contextKey)) {
+      return [];
+    }
+    if (!this.sftp.isConnectedTo(profile)) {
       if (element || this.autoConnectBlocked || !this.config.getCurrentProfile()) {
         this.updateMessage();
         return [];
@@ -315,6 +326,9 @@ export class RemoteTreeProvider implements vscode.TreeDataProvider<RemoteNode> {
         return [];
       }
       this.updateMessage();
+    }
+    if (this.config.getOperationContextKey() !== contextKey) {
+      return [];
     }
     const target = element?.remotePath ?? this.config.resolveRemotePath('');
     try {
@@ -332,12 +346,16 @@ export class RemoteTreeProvider implements vscode.TreeDataProvider<RemoteNode> {
           : await getRemoteSyncInfo(localPath, child);
         return {
           ...child,
+          contextKey,
           syncState: syncInfo.state,
           syncLabel: syncInfo.label,
           isWhitelisted,
           isIgnored
         };
       }));
+      if (this.config.getOperationContextKey() !== contextKey) {
+        return [];
+      }
       const sorted = enriched.sort(sortNodes);
       this.recordFolderState(element, sorted);
       if (!element) {
@@ -618,9 +636,10 @@ async function getRemoteSyncInfo(
 
 /**
  * Decide sync status from edit times AND sizes. Uploads/downloads preserve
- * modification times, so time comparison means edit-time vs edit-time; size is
- * the tie-breaker for servers that return no timestamps, and a same-size file
- * whose server stamp is newer is treated as an uploaded copy (in sync).
+ * modification times, so time comparison means edit-time vs edit-time. Size is
+ * the tie-breaker for servers that return no timestamps. Newer timestamps are
+ * reported conservatively even when sizes match: equal length does not prove
+ * equal content.
  */
 export function compareFileState(
   localMtimeMs: number,
@@ -636,8 +655,8 @@ export function compareFileState(
       return { state: 'unknown', label: 'No timestamp or size' };
     }
     return sizeMatch
-      ? { state: 'synced', label: 'Same size' }
-      : { state: 'localNewer', label: 'Size differs' };
+      ? { state: 'unknown', label: 'Same size • time unknown' }
+      : { state: 'unknown', label: 'Size differs • time unknown' };
   }
 
   const delta = localMtimeMs - remoteModifiedAt;
@@ -645,11 +664,6 @@ export function compareFileState(
     return sizeMatch
       ? { state: 'synced', label: 'In sync' }
       : { state: 'localNewer', label: 'Size differs' };
-  }
-  if (delta < 0 && sizeKnown && sizeMatch) {
-    // Server stamp is newer but content size matches — the typical signature of
-    // an earlier upload that did not preserve timestamps.
-    return { state: 'synced', label: 'Same size (stamped at upload)' };
   }
   if (delta > 0) {
     return { state: 'localNewer', label: sizeMatch ? 'Local newer' : 'Local newer • size differs' };

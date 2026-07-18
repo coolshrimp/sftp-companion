@@ -58,6 +58,8 @@ export interface QueueItem {
 
 export interface LocalNode {
   kind: 'local';
+  /** Account/root generation that produced this tree node. */
+  contextKey: string;
   fullPath: string;
   relativePath: string;
   isDirectory: boolean;
@@ -69,6 +71,8 @@ export interface LocalNode {
 
 export interface RemoteNode {
   kind: 'remote';
+  /** Account/root generation that produced this tree node. */
+  contextKey?: string;
   remotePath: string;
   relativePath: string;
   isDirectory: boolean;

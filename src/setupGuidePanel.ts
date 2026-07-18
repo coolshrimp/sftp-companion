@@ -85,7 +85,7 @@ export class SetupGuidePanel {
     }
     button:hover { background: var(--vscode-button-hoverBackground); }
     .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: baseline; }
-    .green { background: #2ea043; } .red { background: #f85149; } .blue { background: #4a9eda; } .orange { background: #d18616; }
+    .green { background: #2ea043; } .red { background: #f85149; } .orange { background: #d18616; } .yellow { background: #d29922; }
     .warn {
       border-left: 3px solid var(--vscode-charts-orange, #d18616);
       padding: 8px 12px; margin: 10px 0; background: rgba(209,134,22,0.08); border-radius: 0 6px 6px 0;
@@ -124,6 +124,7 @@ export class SetupGuidePanel {
   <div class="card">
     <p><strong><code>.vscode/sftp.json</code></strong> — host, protocol, port, username, remote path, ignore patterns. Hand-editable at any time; the panel and file stay in sync both ways.</p>
     <p><strong><code>.vscode/sftp-companion.json</code></strong> — companion settings: sync folder, auto-sync mode, sync list, hidden files.</p>
+    <p><strong>New-account safety ignores</strong> — <code>.git</code>, <code>.gitignore</code>, <code>.vscode</code>, environment files, common credential files, and private-key formats begin excluded from synchronization. You can edit this list in Account Manager.</p>
     <p><strong>Your password</strong> — stored only in VS Code SecretStorage (your OS credential vault, e.g. Windows Credential Manager). It is <em>never written into the files</em>, and the extension refuses to upload the config files to the server, ever.</p>
     <p>💡 To change the password by hand: paste <code>"password": "newpass"</code> into <code>sftp.json</code> and save — it is absorbed into secure storage and scrubbed from the file automatically.</p>
     <p><strong>Per-project configs:</strong> the extension reads the <code>.vscode/sftp.json</code> of the folder you opened in VS Code — open a sub-project with its own <code>sftp.json</code> and that config is used; nothing is inherited from parent folders.</p>
@@ -135,17 +136,17 @@ export class SetupGuidePanel {
   <p>Status colors used everywhere (file trees and Sync Center):</p>
   <p>
     <span class="dot green"></span>In sync&nbsp;&nbsp;&nbsp;
-    <span class="dot blue"></span>One side is newer&nbsp;&nbsp;&nbsp;
+    <span class="dot orange"></span>Newer / changed&nbsp;&nbsp;&nbsp;
     <span class="dot red"></span>Missing on one side&nbsp;&nbsp;&nbsp;
-    <span class="dot orange"></span>Folder contains changes
+    <span class="dot yellow"></span>Ignored
   </p>
   <ul>
     <li><strong>Manual transfers</strong> — hover any file/folder in the Local or Remote tree for upload (⬆), download (⬇), and diff buttons, or right-click for the full menu.</li>
-    <li><strong>Sync Center</strong> — scans both sides and shows every difference in one table. Right-click rows for actions, tick checkboxes and use <em>Upload / Download / Sync Selected</em>, or sync whole folders at once.</li>
+    <li><strong>Sync Center</strong> — scans both sides into paired Local and Server file trees. Filter or search the aligned rows, then upload, download, diff, ignore, mark equal-size files in sync (timestamps only), or act on whole folders and checkbox selections.</li>
     <li><strong>Sync list</strong> — pin files/folders (right-click → <em>Add / Remove from Sync List</em>) to auto-upload just those.</li>
-    <li><strong>Auto Sync modes</strong> — <em>Manual</em> (nothing automatic), <em>Sync List Only</em>, or <em>Everything</em>. A conflict guard warns before auto-upload overwrites a file that changed on the server after your local edit.</li>
-    <li><strong>Make Identical</strong> — in the Sync Center: pick a source of truth and the other side becomes an exact mirror, including deleting orphan files (a confirmation lists the exact counts first).</li>
-    <li><strong>Remote file management</strong> — right-click in Remote Files for rename/move, new file, new folder, delete, and Change Permissions (chmod); hover a file to see its current permissions.</li>
+    <li><strong>Auto Sync modes</strong> — <em>Manual</em> (nothing automatic), <em>Sync List Only</em>, or <em>Everything</em>. A conflict guard warns before auto-upload overwrites a file that changed on the server after your local edit. The separate <em>Mirror local deletes</em> checkbox can also delete the matching server file/folder and requires its own confirmation; folder deletion recursively removes ignored or remote-only descendants too.</li>
+    <li><strong>Make Identical</strong> — in the Sync Center: pick a source of truth and mirror the other side's files, including deleting orphan files (a confirmation lists the exact counts first; empty directories are not mirrored).</li>
+    <li><strong>Remote file management</strong> — right-click in Remote Files for rename/move, new file, new folder, delete, and Change Permissions (chmod). Ctrl/Cmd-click or Shift-click to select several remote files/folders and delete them with one confirmation.</li>
   </ul>
   <div class="warn"><strong>Careful with "Everything":</strong> every save under the sync root uploads immediately to the server. The extension asks for confirmation before enabling it — read that dialog before clicking yes.</div>
 

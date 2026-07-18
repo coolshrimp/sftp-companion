@@ -2,6 +2,14 @@
 
 All notable changes to **SFTP Companion**.
 
+## 0.9.3
+
+- Reworked Sync Center comparison into paired, row-aligned Local and Server file trees with search, explicit status filters, persistent Ignore, and clearly labeled timestamp-only Mark in sync actions.
+- Replaced large transfer cards with compact paged rows. The panel now sends queue summaries while Compare is open and changed-item patches while Transfers is open, avoiding full 2,000+ item DOM rebuilds on every progress update.
+- Disabled Make Identical after capped or partially failed scans, and limited Mark in sync to equal-size files that exist on both sides.
+- Enabled confirmed multi-select deletion in Remote Files, surfaced opt-in file/folder delete mirroring in the Account Manager, and added security-focused ignore defaults for new accounts.
+- Bound queued transfers to their originating account/root, serialized reconnects, preserved hand-edited config keys, and blocked local sync writes through links that escape the canonical root.
+
 ## 0.9.2
 
 - **Much smaller, faster-loading extension** — the code is now bundled with esbuild: the package went from 603 files / 5.4 MB to 10 files / 0.4 MB, which speeds up install and activation.

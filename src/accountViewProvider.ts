@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import * as vscode from 'vscode';
-import { ConfigService } from './configService';
+import { ConfigService, DEFAULT_SECURITY_IGNORE_PATTERNS } from './configService';
 import { Logger } from './logger';
 import { AutoSyncMode, SftpProfile, StoredSecretPayload } from './types';
 
@@ -10,7 +10,7 @@ export class AccountViewProvider {
   public constructor(
     private readonly config: ConfigService,
     private readonly logger: Logger,
-    private readonly onProfileSaved: () => void
+    private readonly onProfileSaved: () => Promise<void> | void
   ) {}
 
   public async reveal(): Promise<void> {
@@ -30,10 +30,18 @@ export class AccountViewProvider {
       this.currentPanel = undefined;
     });
     this.currentPanel.webview.onDidReceiveMessage(async (message) => {
-      switch (message?.type) {
+      try {
+        switch (message?.type) {
         case 'save-profile':
-          await this.handleSave(message.payload);
-          await this.pushProfileToWebview();
+          if (await this.handleSave(message.payload)) {
+            await this.pushProfileToWebview(true);
+          }
+          break;
+        case 'save-and-view':
+          if (await this.handleSave(message.payload)) {
+            await this.pushProfileToWebview(true);
+            await this.config.openWorkspaceConfig();
+          }
           break;
         case 'generate-config':
           await this.config.generateWorkspaceConfig();
@@ -47,6 +55,11 @@ export class AccountViewProvider {
         case 'request-reload':
           await this.render();
           break;
+        }
+      } catch (error) {
+        const text = error instanceof Error ? error.message : String(error);
+        this.logger.append('error', `Account settings: ${text}`);
+        vscode.window.showErrorMessage(`Could not save SFTP settings: ${text}`);
       }
     });
     await this.render();
@@ -57,16 +70,17 @@ export class AccountViewProvider {
     await this.pushProfileToWebview();
   }
 
-  private async pushProfileToWebview(): Promise<void> {
+  private async pushProfileToWebview(saved = false): Promise<void> {
     if (!this.currentPanel) {
       return;
     }
     const loaded = await this.config.loadActiveProfile();
     void this.currentPanel.webview.postMessage({
-      type: 'config-updated',
+      type: saved ? 'profile-saved' : 'config-updated',
       profile: loaded?.profile ?? null,
       password: loaded?.password ?? '',
-      passphrase: loaded?.passphrase ?? ''
+      passphrase: loaded?.passphrase ?? '',
+      autoDeleteRemote: vscode.workspace.getConfiguration('sftpCompanion').get<boolean>('autoDeleteRemote', false)
     });
   }
 
@@ -80,11 +94,12 @@ export class AccountViewProvider {
       this.currentPanel.webview,
       loaded?.profile,
       loaded?.password,
-      loaded?.passphrase
+      loaded?.passphrase,
+      vscode.workspace.getConfiguration('sftpCompanion').get<boolean>('autoDeleteRemote', false)
     );
   }
 
-  private async handleSave(payload: Record<string, unknown>): Promise<void> {
+  private async handleSave(payload: Record<string, unknown>): Promise<boolean> {
     // The webview exposes 'sftp' | 'ftp' | 'ftps'; internally FTPS is FTP + secure.
     const isFtp = payload.protocol === 'ftp' || payload.protocol === 'ftps';
     const profile: SftpProfile = {
@@ -111,7 +126,7 @@ export class AccountViewProvider {
 
     if (!profile.host || !profile.username) {
       vscode.window.showWarningMessage('Host and username are required.');
-      return;
+      return false;
     }
 
     if (profile.protocol === 'sftp' && profile.port === 21) {
@@ -127,7 +142,7 @@ export class AccountViewProvider {
       } else if (choice === 'Use Port 22') {
         profile.port = 22;
       } else if (choice !== 'Keep As Is') {
-        return;
+        return false;
       }
     }
 
@@ -146,17 +161,41 @@ export class AccountViewProvider {
       );
       if (choice !== confirmLabel) {
         vscode.window.showInformationMessage('Save cancelled — auto sync mode was not changed.');
-        return;
+        return false;
+      }
+    }
+
+    const autoDeleteRemote = payload.autoDeleteRemote === true;
+    const previousAutoDelete = vscode.workspace.getConfiguration('sftpCompanion').get<boolean>('autoDeleteRemote', false);
+    if (autoDeleteRemote && !previousAutoDelete) {
+      const confirmLabel = 'Enable Delete Mirroring';
+      const choice = await vscode.window.showWarningMessage(
+        'Mirror local deletes to the server?',
+        {
+          modal: true,
+          detail: 'When auto-sync is enabled, deleting a local file or folder inside its scope permanently deletes the matching server item. Deleting a folder recursively removes everything inside the server folder, including remote-only or ignored descendants. Deleted server content cannot be restored by this extension.'
+        },
+        confirmLabel
+      );
+      if (choice !== confirmLabel) {
+        vscode.window.showInformationMessage('Save cancelled — delete mirroring was not enabled.');
+        return false;
       }
     }
 
     await this.config.saveProfile(profile, secret);
-    this.onProfileSaved();
+    await vscode.workspace.getConfiguration('sftpCompanion').update(
+      'autoDeleteRemote',
+      autoDeleteRemote,
+      vscode.ConfigurationTarget.Workspace
+    );
+    await this.onProfileSaved();
     this.logger.append('info', `Account settings updated for ${profile.host}.`);
     vscode.window.showInformationMessage('Saved SFTP settings to .vscode/sftp.json.');
+    return true;
   }
 
-  private getHtml(webview: vscode.Webview, profile?: SftpProfile, password?: string, passphrase?: string): string {
+  private getHtml(webview: vscode.Webview, profile?: SftpProfile, password?: string, passphrase?: string, autoDeleteRemote = false): string {
     const nonce = randomBytes(16).toString('base64');
     const authMode = profile?.authMode ?? 'password';
     const autoSyncMode = profile?.autoSyncMode ?? 'manual';
@@ -307,6 +346,7 @@ export class AccountViewProvider {
         </select>
       </label>
       <label class="check"><input type="checkbox" id="showHiddenFiles" ${profile?.showHiddenFiles ? 'checked' : ''} /> <span class="title">Show hidden files in trees</span></label>
+      <label class="check full"><input type="checkbox" id="autoDeleteRemote" ${autoDeleteRemote ? 'checked' : ''} /> <span class="title">Mirror local deletes to the server <span class="hint">— only inside the active auto-sync scope; confirmation is required when enabling</span></span></label>
       <label class="full"><span class="title">Sync List <span class="hint">— files and folders that auto-upload in "Sync List Only" mode. One path per line, relative to the sync folder. Easiest way: right-click any file/folder → Add / Remove from Sync List.</span></span><textarea id="whitelist" placeholder="NewSite&#10;assets/uploads&#10;index.php">${escapeHtml((profile?.whitelist ?? []).join('\n'))}</textarea></label>
     </div>
   </div>
@@ -314,7 +354,7 @@ export class AccountViewProvider {
   <div class="card">
     <h2>Ignore Patterns</h2>
     <div class="grid">
-      <label class="full"><span class="title">One entry per line <span class="hint">— never uploaded or watched, hidden from Remote Files, and skipped in folder downloads. Works like .gitignore: a name without a slash (e.g. <code>_notes</code>) matches every folder/file with that name at any depth, folder and contents included. A path with a slash (e.g. <code>NewSite/cache</code>) is anchored to the sync root. Globs allowed (<code>*.log</code>).</span></span><textarea id="ignore" placeholder="_notes&#10;.vscode&#10;HostedSites&#10;*.log">${escapeHtml((profile?.ignore ?? ['.vscode', '_notes']).join('\n'))}</textarea></label>
+      <label class="full"><span class="title">One entry per line <span class="hint">— never uploaded or watched, hidden from Remote Files, and skipped in folder downloads. New accounts start with security-focused exclusions such as <code>.git</code>, <code>.gitignore</code>, <code>.vscode</code>, environment files, and private-key formats. A name without a slash matches at any depth; globs are allowed.</span></span><textarea id="ignore" placeholder=".git&#10;.gitignore&#10;.vscode&#10;.env&#10;*.pem">${escapeHtml((profile?.ignore ?? [...DEFAULT_SECURITY_IGNORE_PATTERNS]).join('\n'))}</textarea></label>
     </div>
   </div>
 
@@ -327,7 +367,7 @@ export class AccountViewProvider {
 
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
-    const ids = ['protocol','host','port','username','remotePath','context','syncFolder','autoSyncMode','authMode','privateKeyPath','password','passphrase','ignore','whitelist','showHiddenFiles'];
+    const ids = ['protocol','host','port','username','remotePath','context','syncFolder','autoSyncMode','authMode','privateKeyPath','password','passphrase','ignore','whitelist','showHiddenFiles','autoDeleteRemote'];
     let dirty = false;
     let externalData = null;
 
@@ -374,6 +414,7 @@ export class AccountViewProvider {
       setValue('ignore', (profile.ignore || []).join('\\n'));
       setValue('whitelist', (profile.whitelist || []).join('\\n'));
       el('showHiddenFiles').checked = profile.showHiddenFiles === true;
+      el('autoDeleteRemote').checked = data.autoDeleteRemote === true;
       dirty = false;
       toggleAuth();
       el('externalBanner').style.display = 'none';
@@ -385,12 +426,10 @@ export class AccountViewProvider {
     });
     el('authMode').addEventListener('change', toggleAuth);
     el('protocol').addEventListener('change', onProtocolChanged);
-    el('save').addEventListener('click', () => { dirty = false; vscode.postMessage({ type: 'save-profile', payload: collect() }); });
+    el('save').addEventListener('click', () => vscode.postMessage({ type: 'save-profile', payload: collect() }));
     el('generate').addEventListener('click', () => {
-      // Same save as the primary button (current form values), then open the file.
-      dirty = false;
-      vscode.postMessage({ type: 'save-profile', payload: collect() });
-      vscode.postMessage({ type: 'open-config' });
+      // Open the JSON only after validation, confirmations, and both writes finish.
+      vscode.postMessage({ type: 'save-and-view', payload: collect() });
     });
     el('openConfig').addEventListener('click', () => vscode.postMessage({ type: 'open-config' }));
     el('test').addEventListener('click', () => vscode.postMessage({ type: 'test-connection' }));
@@ -398,7 +437,9 @@ export class AccountViewProvider {
 
     window.addEventListener('message', (event) => {
       const message = event.data;
-      if (message && message.type === 'config-updated') {
+      if (message && message.type === 'profile-saved') {
+        applyProfile(message);
+      } else if (message && message.type === 'config-updated') {
         if (dirty) {
           externalData = message;
           el('externalBanner').style.display = 'flex';

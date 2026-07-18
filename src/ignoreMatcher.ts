@@ -20,7 +20,12 @@ export class IgnoreMatcher {
       candidates.push(segments.slice(0, index).join('/'));
     }
     return this.ignorePatterns.some((pattern) => {
-      const normalizedPattern = normalizeRelative(pattern);
+      const anchored = pattern.startsWith('/');
+      // Root-anchored patterns created by Ignore actions use minimatch's
+      // backslash escapes for literal metacharacters; preserve those escapes.
+      const normalizedPattern = anchored
+        ? pattern.replace(/^\/+/, '').replace(/\/+/g, '/').replace(/\/$/, '')
+        : normalizeRelative(pattern);
       if (!normalizedPattern) {
         return false;
       }
@@ -30,8 +35,12 @@ export class IgnoreMatcher {
       //    every _notes folder in the tree, like .gitignore does),
       //  - a pattern with a slash stays anchored to the sync root.
       const base = normalizedPattern.replace(/\/\*\*$/, '');
-      const variants = base.includes('/') ? [base] : [base, `**/${base}`];
-      return candidates.some((candidate) => variants.some((variant) => minimatch(candidate, variant, { dot: true })));
+      const variants = anchored || base.includes('/') ? [base] : [base, `**/${base}`];
+      return candidates.some((candidate) => variants.some((variant) => minimatch(candidate, variant, {
+        dot: true,
+        nonegate: true,
+        nocomment: true
+      })));
     });
   }
 

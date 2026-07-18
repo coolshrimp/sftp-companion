@@ -2,7 +2,7 @@
   "name": "sftp-companion",
   "displayName": "SFTP Companion - SFTP/FTP/FTPS Sync",
   "description": "Visual SFTP/FTP/FTPS sync — account manager, sync-status file trees, compare view, and a transfer queue with real progress",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "publisher": "coolshrimp",
   "license": "MIT",
   "repository": {
@@ -780,7 +780,7 @@
         "sftpCompanion.autoDeleteRemote": {
           "type": "boolean",
           "default": false,
-          "description": "DANGEROUS: when auto-sync is active and a local file inside the synced scope is deleted, also delete it from the server. Off by default."
+          "description": "DANGEROUS: when auto-sync is active and a local file or folder inside the synced scope is deleted, also delete it from the server. Folder deletion is recursive and includes ignored or remote-only descendants. Off by default."
         },
         "sftpCompanion.confirmRemoteDelete": {
           "type": "boolean",

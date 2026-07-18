@@ -85,6 +85,26 @@ export class SftpService {
     return this.isConnected;
   }
 
+  /** True only when the live session represents the currently loaded account. */
+  public isConnectedTo(loaded: LoadedProfile): boolean {
+    const current = this.currentProfile;
+    if (!this.isConnected || !current) {
+      return false;
+    }
+    const left = current.profile;
+    const right = loaded.profile;
+    return left.protocol === right.protocol
+      && Boolean(left.secure) === Boolean(right.secure)
+      && left.host === right.host
+      && left.port === right.port
+      && left.username === right.username
+      && joinRemote(left.remotePath || '/') === joinRemote(right.remotePath || '/')
+      && left.authMode === right.authMode
+      && (left.privateKeyPath ?? '') === (right.privateKeyPath ?? '')
+      && (current.password ?? '') === (loaded.password ?? '')
+      && (current.passphrase ?? '') === (loaded.passphrase ?? '');
+  }
+
   public async connect(loaded: LoadedProfile): Promise<void> {
     await this.disconnect();
     this.mode = loaded.profile.protocol === 'ftp' ? 'ftp' : 'sftp';
