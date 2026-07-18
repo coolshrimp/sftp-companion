@@ -1077,7 +1077,15 @@ export class SyncCenterPanel {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    :root { color-scheme: light dark; }
+    :root {
+      color-scheme: light dark;
+      --c-sync: var(--vscode-charts-green, #2ea043);
+      --c-lnew: var(--vscode-charts-orange, #d18616);
+      --c-rnew: var(--vscode-charts-yellow, #d29922);
+      --c-lonly: var(--vscode-charts-blue, #3794ff);
+      --c-sonly: var(--vscode-charts-red, #f85149);
+      --c-unk: var(--vscode-descriptionForeground, #8b949e);
+    }
     * { box-sizing: border-box; }
     body {
       font-family: var(--vscode-font-family);
@@ -1146,49 +1154,95 @@ export class SyncCenterPanel {
     .compare-shell {
       min-width: 760px; border: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.25));
       border-radius: 4px; overflow: hidden; background: var(--vscode-editor-background);
+      font-size: 0.94em;
     }
     .compare-head, .compare-line {
-      display: grid; grid-template-columns: minmax(220px, 1fr) minmax(260px, 0.78fr) minmax(220px, 1fr);
+      display: grid;
+      grid-template-columns: minmax(170px, 1fr) 84px 206px minmax(170px, 1fr) 84px;
     }
     .compare-head {
-      position: sticky; top: 0; z-index: 4; min-height: 36px; align-items: stretch;
+      position: sticky; top: 0; z-index: 4; min-height: 25px; align-items: stretch;
       background: var(--vscode-sideBarSectionHeader-background, var(--vscode-editor-background));
       border-bottom: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.25));
       text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.06em; font-weight: 600;
     }
-    .compare-head > div { display: flex; align-items: center; padding: 5px 9px; }
-    .compare-head .center-head { justify-content: center; border-left: 1px solid rgba(128,128,128,0.18); border-right: 1px solid rgba(128,128,128,0.18); }
+    .compare-head > div { display: flex; align-items: center; padding: 3px 8px; }
+    .compare-head .center-head { justify-content: center; border-left: 1px solid rgba(128,128,128,0.18); }
+    .compare-head .size-head { justify-content: flex-end; opacity: 0.7; }
+    .compare-head .size-head.server-size { padding-right: 8px; }
+    .compare-head .server-name { border-left: 1px solid rgba(128,128,128,0.18); }
     .head-caption { margin-left: 7px; opacity: 0.55; font-weight: 400; text-transform: none; letter-spacing: 0; }
-    .compare-line {
-      min-height: 43px; border-bottom: 1px solid rgba(128,128,128,0.12); align-items: stretch;
-    }
-    .compare-line:last-child { border-bottom: 0; }
-    .compare-line:hover { background: var(--vscode-list-hoverBackground, rgba(128,128,128,0.08)); }
-    .compare-line.folder-line { min-height: 36px; background: rgba(128,128,128,0.045); cursor: pointer; }
-    .compare-line.folder-line:hover { background: var(--vscode-list-hoverBackground, rgba(128,128,128,0.12)); }
+    .compare-line { min-height: 22px; align-items: center; line-height: 20px; }
+    .compare-line:nth-child(even) { background: rgba(128,128,128,0.04); }
+    .compare-line:hover { background: var(--vscode-list-hoverBackground, rgba(128,128,128,0.1)); }
+    .compare-line.folder-line { background: rgba(128,128,128,0.08); cursor: pointer; }
+    .compare-line.folder-line:hover { background: var(--vscode-list-hoverBackground, rgba(128,128,128,0.14)); }
+    /* Per-state row tint + left stripe so out-of-sync files read at a glance. */
+    .compare-line.st-localNewer { --act: var(--c-lnew); background: color-mix(in srgb, var(--c-lnew) 8%, transparent); box-shadow: inset 3px 0 0 var(--c-lnew); }
+    .compare-line.st-localNewer:hover { background: color-mix(in srgb, var(--c-lnew) 16%, transparent); }
+    .compare-line.st-remoteNewer { --act: var(--c-rnew); background: color-mix(in srgb, var(--c-rnew) 8%, transparent); box-shadow: inset 3px 0 0 var(--c-rnew); }
+    .compare-line.st-remoteNewer:hover { background: color-mix(in srgb, var(--c-rnew) 16%, transparent); }
+    .compare-line.st-missingRemote { --act: var(--c-lonly); background: color-mix(in srgb, var(--c-lonly) 8%, transparent); box-shadow: inset 3px 0 0 var(--c-lonly); }
+    .compare-line.st-missingRemote:hover { background: color-mix(in srgb, var(--c-lonly) 16%, transparent); }
+    .compare-line.st-missingLocal { --act: var(--c-sonly); background: color-mix(in srgb, var(--c-sonly) 8%, transparent); box-shadow: inset 3px 0 0 var(--c-sonly); }
+    .compare-line.st-missingLocal:hover { background: color-mix(in srgb, var(--c-sonly) 16%, transparent); }
+    .compare-line.st-synced { --act: var(--c-sync); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c-sync) 55%, transparent); }
+    .compare-line.st-unknown { --act: var(--c-unk); }
+    .compare-line.folder-line.attention { --act: var(--c-lnew); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c-lnew) 70%, transparent); }
     .side-cell {
-      min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 8px;
-      overflow: hidden;
+      min-width: 0; align-self: stretch; display: flex; align-items: center; gap: 4px;
+      padding: 0 6px; overflow: hidden; white-space: nowrap;
     }
     .side-cell.server { border-left: 1px solid rgba(128,128,128,0.18); }
-    .side-cell.missing-side { opacity: 0.42; font-style: italic; }
-    .tree-twisty { width: 12px; flex: 0 0 12px; text-align: center; opacity: 0.75; }
-    .tree-icon { flex: 0 0 auto; opacity: 0.9; }
-    .tree-text { min-width: 0; overflow: hidden; }
-    .tree-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .folder-line .tree-name { font-weight: 600; }
-    .file-meta { margin-top: 1px; opacity: 0.62; font-size: 0.82em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .center-cell {
-      min-width: 0; padding: 3px 5px; display: flex; align-items: center; justify-content: center;
-      gap: 5px; flex-wrap: nowrap; border-left: 1px solid rgba(128,128,128,0.18);
+    .side-cell.missing-side { opacity: 0.38; font-style: italic; }
+    .size-cell {
+      min-width: 0; padding: 0 8px 0 4px; text-align: right; white-space: nowrap;
+      overflow: hidden; opacity: 0.7; font-variant-numeric: tabular-nums;
     }
-    .row-check { flex: 0 0 auto; margin: 0 1px 0 0; }
-    .status-wrap { min-width: 0; flex: 1 1 90px; text-align: center; }
-    .status-detail { margin-top: 1px; font-size: 0.78em; opacity: 0.58; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .inline-actions { display: flex; gap: 2px; align-items: center; justify-content: center; opacity: 0.45; }
-    .compare-line:hover .inline-actions, .compare-line:focus-within .inline-actions, .compare-line.attention .inline-actions { opacity: 1; }
-    .icon-action { min-width: 24px; height: 23px; padding: 1px 5px !important; line-height: 18px; }
-    .icon-action.recommended { border-color: color-mix(in srgb, var(--vscode-focusBorder) 65%, transparent); }
+    .tree-twisty { width: 11px; flex: 0 0 11px; text-align: center; opacity: 0.75; font-size: 0.85em; }
+    .tree-icon { flex: 0 0 auto; font-size: 0.95em; line-height: 1; }
+    .tree-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .folder-line .tree-name { font-weight: 600; }
+    .center-cell {
+      min-width: 0; align-self: stretch; padding: 0 4px; display: flex; align-items: center;
+      gap: 2px; flex-wrap: nowrap; overflow: hidden; border-left: 1px solid rgba(128,128,128,0.18);
+    }
+    .row-check { flex: 0 0 auto; width: 13px; height: 13px; margin: 0 2px 0 0; }
+    .status-glyph {
+      flex: 0 0 auto; min-width: 20px; padding: 0 3px; text-align: center; font-weight: 700;
+      cursor: default; border-radius: 3px; background: color-mix(in srgb, currentColor 14%, transparent);
+    }
+    .status-glyph.synced, .status-glyph.st-synced { color: var(--c-sync); }
+    .status-glyph.differ, .status-glyph.st-localNewer { color: var(--c-lnew); }
+    .status-glyph.st-remoteNewer { color: var(--c-rnew); }
+    .status-glyph.st-missingRemote { color: var(--c-lonly); }
+    .status-glyph.missing, .status-glyph.st-missingLocal { color: var(--c-sonly); }
+    .status-glyph.unknown, .status-glyph.st-unknown { color: var(--c-unk); }
+    .dir-group {
+      display: inline-flex; align-items: center; margin: 0 2px;
+      border: 1px solid rgba(128,128,128,0.35); border-radius: 4px; overflow: hidden;
+    }
+    button.dir-toggle {
+      min-width: 18px; height: 18px; padding: 0 2px; line-height: 16px; font-size: 0.88em;
+      background: transparent; border: none; border-radius: 0; color: var(--vscode-foreground); opacity: 0.45;
+    }
+    button.dir-toggle + button.dir-toggle { border-left: 1px solid rgba(128,128,128,0.25); }
+    button.dir-toggle:hover:not(:disabled) { opacity: 1; background: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,0.25)); }
+    button.dir-toggle.active {
+      opacity: 1; font-weight: 700;
+      color: var(--act, var(--vscode-foreground));
+      background: color-mix(in srgb, var(--act, var(--vscode-focusBorder)) 26%, transparent);
+    }
+    button.dir-toggle.d-skip.active { color: var(--vscode-foreground); background: rgba(128,128,128,0.28); }
+    button.dir-toggle:disabled { opacity: 0.15; }
+    .inline-actions { display: flex; gap: 1px; align-items: center; margin-left: auto; }
+    button.icon-action {
+      min-width: 21px; height: 20px; padding: 0 3px; line-height: 18px; font-size: 0.92em;
+      background: transparent; border: 1px solid transparent; border-radius: 3px;
+      color: var(--vscode-foreground); opacity: 0.6;
+    }
+    button.icon-action:hover:not(:disabled) { background: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,0.25)); opacity: 1; }
+    button.icon-action:disabled { opacity: 0.18; }
     .more-row { padding: 8px; text-align: center; border-top: 1px solid rgba(128,128,128,0.14); }
     .page-label { display: inline-block; min-width: 92px; opacity: 0.7; }
 
@@ -1220,7 +1274,17 @@ export class SyncCenterPanel {
     .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(128,128,128,0.18); overflow: hidden; }
     .bar > div { height: 100%; background: var(--vscode-progressBar-background, #0e70c0); transition: width 0.2s; }
     .empty { opacity: 0.6; padding: 24px 0; text-align: center; }
-    .counts { opacity: 0.75; margin-left: auto; }
+    .counts { opacity: 0.85; margin-left: auto; }
+    .counts .c-sync { color: var(--c-sync); }
+    .counts .c-differ { color: var(--c-lnew); }
+    .counts .c-lonly { color: var(--c-lonly); }
+    .counts .c-sonly { color: var(--c-sonly); }
+    .filter-strip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+    .dot.d-attn { background: linear-gradient(135deg, var(--c-lnew) 50%, var(--c-sonly) 50%); }
+    .dot.d-differ { background: linear-gradient(135deg, var(--c-lnew) 50%, var(--c-rnew) 50%); }
+    .dot.d-lonly { background: var(--c-lonly); }
+    .dot.d-sonly { background: var(--c-sonly); }
+    .dot.d-sync { background: var(--c-sync); }
     input[type="checkbox"] { accent-color: var(--vscode-focusBorder); cursor: pointer; }
     #ctxMenu {
       position: fixed; z-index: 100; min-width: 230px; display: none;
@@ -1235,8 +1299,8 @@ export class SyncCenterPanel {
     #ctxMenu .item.disabled:hover { background: none; color: inherit; }
     #ctxMenu .sep { height: 1px; margin: 4px 6px; background: rgba(128,128,128,0.25); }
     @media (max-width: 900px) {
-      .compare-head, .compare-line { grid-template-columns: minmax(205px, 1fr) 245px minmax(205px, 1fr); }
-      .status-detail { display: none; }
+      .compare-head, .compare-line { grid-template-columns: minmax(160px, 1fr) 180px minmax(160px, 1fr); }
+      .size-cell, .size-head { display: none; }
       .transfer-head, .transfer-row { grid-template-columns: minmax(140px, 0.8fr) minmax(170px, 1fr) minmax(130px, 0.7fr) auto; }
     }
   </style>
@@ -1256,11 +1320,11 @@ export class SyncCenterPanel {
     </div>
     <div class="toolbar">
       <div class="filter-strip" id="compareFilters" aria-label="Comparison status filters">
-        <button class="active" data-filter="attention">Not in sync</button>
-        <button data-filter="differ">Different</button>
-        <button data-filter="missingRemote">Local only</button>
-        <button data-filter="missingLocal">Server only</button>
-        <button data-filter="synced">In sync</button>
+        <button class="active" data-filter="attention"><span class="dot d-attn"></span>Not in sync</button>
+        <button data-filter="differ"><span class="dot d-differ"></span>Different</button>
+        <button data-filter="missingRemote"><span class="dot d-lonly"></span>Local only</button>
+        <button data-filter="missingLocal"><span class="dot d-sonly"></span>Server only</button>
+        <button data-filter="synced"><span class="dot d-sync"></span>In sync</button>
         <button data-filter="all">All</button>
       </div>
       <span class="toolbar-spacer"></span>
@@ -1275,6 +1339,7 @@ export class SyncCenterPanel {
       <button class="secondary mini" id="selMark" disabled title="Align equal-size file timestamps only; no content is transferred or compared">Mark in sync</button>
       <button class="secondary mini" id="selIgnore" disabled title="Add selected paths to the persistent ignore list">Ignore</button>
       <span class="toolbar-spacer"></span>
+      <button class="mini" id="syncShown" disabled title="Sync every shown out-of-sync file, newer side wins (⬆ upload / ⬇ download decided per file)">&#8645; Sync Shown</button>
       <button class="secondary mini" id="bulkUpload" disabled>Upload shown</button>
       <button class="secondary mini" id="bulkDownload" disabled>Download shown</button>
       <button class="secondary mini" id="makeIdentical" disabled title="Mirror one side's files to the other; orphan deletion is confirmed first and empty directories are not included">Make Identical&hellip;</button>
@@ -1283,8 +1348,10 @@ export class SyncCenterPanel {
     <div class="compare-shell" id="compareTree" style="display:none">
       <div class="compare-head">
         <div>Local files <span class="head-caption">workspace</span></div>
-        <div class="center-head"><input type="checkbox" id="selectAll" title="Select or deselect all shown files" />&nbsp; Status &amp; actions</div>
-        <div>Server files <span class="head-caption">remote</span></div>
+        <div class="size-head">Size</div>
+        <div class="center-head"><input type="checkbox" id="selectAll" title="Select or deselect all shown files" />&nbsp; Status / Direction</div>
+        <div class="server-name">Server files <span class="head-caption">remote</span></div>
+        <div class="size-head server-size">Size</div>
       </div>
       <div id="compareBody"></div>
       <div class="more-row" id="compareMore" style="display:none"><button class="secondary mini">Show more rows</button></div>
@@ -1564,45 +1631,69 @@ export class SyncCenterPanel {
     function createSideCell(options) {
       const cell = document.createElement('div');
       cell.className = 'side-cell' + (options.server ? ' server' : '') + (options.exists ? '' : ' missing-side');
-      cell.style.paddingLeft = (8 + options.depth * 15) + 'px';
+      cell.style.paddingLeft = (6 + options.depth * 14) + 'px';
       const twisty = document.createElement('span');
       twisty.className = 'tree-twisty';
       twisty.textContent = options.folder ? (options.open ? '▾' : '▸') : '';
       const icon = document.createElement('span');
       icon.className = 'tree-icon';
-      icon.textContent = options.exists ? (options.folder ? '▰' : '◇') : '—';
-      const text = document.createElement('div');
-      text.className = 'tree-text';
-      const name = document.createElement('div');
+      icon.textContent = options.exists ? (options.folder ? '📁' : '📄') : '·';
+      const name = document.createElement('span');
       name.className = 'tree-name';
       name.textContent = options.exists ? options.name : options.missingLabel;
-      name.title = options.path;
-      text.appendChild(name);
-      if (options.meta) {
-        const meta = document.createElement('div');
-        meta.className = 'file-meta';
-        meta.textContent = options.meta;
-        meta.title = options.meta;
-        text.appendChild(meta);
-      }
-      cell.append(twisty, icon, text);
+      name.title = options.title ? options.path + '\\n' + options.title : options.path;
+      cell.append(twisty, icon, name);
       return cell;
     }
 
-    function createStatus(text, bucket, detail) {
-      const wrap = document.createElement('div');
-      wrap.className = 'status-wrap';
-      const pill = document.createElement('span');
-      pill.className = 'pill ' + bucket;
-      pill.textContent = text;
-      wrap.appendChild(pill);
-      if (detail) {
-        const sub = document.createElement('div');
-        sub.className = 'status-detail';
-        sub.textContent = detail;
-        wrap.appendChild(sub);
-      }
-      return wrap;
+    function createSizeCell(text, title) {
+      const cell = document.createElement('div');
+      cell.className = 'size-cell';
+      cell.textContent = text || '';
+      if (title) cell.title = title;
+      return cell;
+    }
+
+    function statusGlyphChar(state) {
+      if (state === 'synced') return '=';
+      if (state === 'localNewer') return '›';
+      if (state === 'missingRemote') return '»';
+      if (state === 'remoteNewer') return '‹';
+      if (state === 'missingLocal') return '«';
+      return '?';
+    }
+
+    function createStatus(glyph, stateClass, title) {
+      const span = document.createElement('span');
+      span.className = 'status-glyph ' + stateClass;
+      span.textContent = glyph;
+      span.title = title;
+      return span;
+    }
+
+    // GoodSync-style 3-position direction control: ←  ○  →  (download / skip /
+    // upload). The recommended direction (newer / only-existing side) is
+    // pre-highlighted; clicking a side immediately queues that transfer.
+    function createDirGroup(options) {
+      const group = document.createElement('div');
+      group.className = 'dir-group';
+      const make = (dir, glyph, label, enabled, active, run) => {
+        const button = document.createElement('button');
+        button.className = 'dir-toggle d-' + dir + (active ? ' active' : '');
+        button.textContent = glyph;
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        button.disabled = !enabled;
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (enabled) run();
+        });
+        return button;
+      };
+      group.appendChild(make('down', '←', options.downLabel, options.canDown, options.recommended === 'down', options.onDown));
+      group.appendChild(make('skip', '○', options.skipLabel || 'No action', true, options.recommended === 'skip', options.onSkip || (() => {})));
+      group.appendChild(make('up', '→', options.upLabel, options.canUp, options.recommended === 'up', options.onUp));
+      return group;
     }
 
     function renderCompare() {
@@ -1619,11 +1710,31 @@ export class SyncCenterPanel {
         else counts[stateBucket(row.state)] += 1;
       });
       const notInSync = rows.length - counts.synced;
-      el('compareCounts').textContent = rows.length
-        ? counts.synced + ' in sync · ' + notInSync + ' not in sync · ' + counts.differ + ' different · ' + counts.localOnly + ' local only · ' + counts.serverOnly + ' server only'
-        : '';
+      el('compareCounts').textContent = '';
+      if (rows.length) {
+        const seg = (cls, value, label) => {
+          const span = document.createElement('span');
+          if (cls) span.className = cls;
+          span.textContent = value + ' ' + label;
+          return span;
+        };
+        const parts = [
+          seg('c-sync', counts.synced, 'in sync'),
+          seg('', notInSync, 'not in sync'),
+          seg('c-differ', counts.differ, 'different'),
+          seg('c-lonly', counts.localOnly, 'local only'),
+          seg('c-sonly', counts.serverOnly, 'server only')
+        ];
+        parts.forEach((part, index) => {
+          if (index) el('compareCounts').appendChild(document.createTextNode(' · '));
+          el('compareCounts').appendChild(part);
+        });
+      }
       el('bulkUpload').disabled = !scanComplete || !shown.some((row) => hasLocal(row) && row.state !== 'synced');
       el('bulkDownload').disabled = !scanComplete || !shown.some((row) => hasRemote(row) && row.state !== 'synced');
+      const shownSync = smartSplit(shown.map((row) => row.path));
+      el('syncShown').disabled = !scanComplete || (!shownSync.up.length && !shownSync.down.length);
+      el('syncShown').textContent = '⇅ Sync Shown (' + (shownSync.up.length + shownSync.down.length) + ')';
 
       selected = new Set([...selected].filter((candidate) => rowMap.has(candidate)));
       const selectedPaths = [...selected];
@@ -1673,6 +1784,7 @@ export class SyncCenterPanel {
         const changed = aggregateState.differ + aggregateState.missing + aggregateState.unknown;
         const line = document.createElement('div');
         line.className = 'compare-line folder-line' + (changed ? ' attention' : '');
+        const folderDetail = child.path + '\\n' + aggregateState.synced + ' in sync · ' + changed + ' need attention';
         line.appendChild(createSideCell({
           exists: aggregateState.local > 0,
           server: false,
@@ -1682,24 +1794,30 @@ export class SyncCenterPanel {
           name: child.name,
           path: child.path,
           missingLabel: 'Not in local tree',
-          meta: aggregateState.local ? aggregateState.local + ' file' + (aggregateState.local === 1 ? '' : 's') : ''
+          title: aggregateState.local ? aggregateState.local + ' file' + (aggregateState.local === 1 ? '' : 's') : ''
         }));
+        line.appendChild(createSizeCell(aggregateState.local ? aggregateState.local + ' file' + (aggregateState.local === 1 ? '' : 's') : '', folderDetail));
 
+        const canUp = scanAvailable && aggregateState.uploadable.length > 0;
+        const canDown = scanAvailable && aggregateState.downloadable.length > 0;
+        const folderRec = !changed ? 'skip' : canUp && !canDown ? 'up' : canDown && !canUp ? 'down' : 'skip';
         const center = document.createElement('div');
         center.className = 'center-cell';
         center.appendChild(createSelection(all, 'Select all shown files under ' + child.path));
-        const detail = aggregateState.synced + ' in sync · ' + changed + ' need attention';
-        center.appendChild(createStatus(changed ? 'Contains changes' : 'In sync', changed ? 'differ' : 'synced', detail));
+        center.appendChild(createStatus(changed ? '≠' : '=', changed ? 'differ' : 'st-synced', folderDetail));
+        center.appendChild(createDirGroup({
+          canDown,
+          canUp,
+          recommended: folderRec,
+          downLabel: 'Download changed files in this folder: server → local (' + aggregateState.downloadable.length + ')',
+          upLabel: 'Upload changed files in this folder: local → server (' + aggregateState.uploadable.length + ')',
+          skipLabel: 'Folder needs no transfer',
+          onDown: () => { sendBulk('download', aggregateState.downloadable); switchTab('transfers'); },
+          onUp: () => { sendBulk('upload', aggregateState.uploadable); switchTab('transfers'); }
+        }));
         const actions = document.createElement('div');
         actions.className = 'inline-actions';
-        actions.appendChild(createAction('→ ' + aggregateState.uploadable.length, 'Upload changed files in this folder: local to server', scanAvailable && aggregateState.uploadable.length > 0, () => {
-          sendBulk('upload', aggregateState.uploadable);
-          switchTab('transfers');
-        }, split.up.length > 0));
-        actions.appendChild(createAction('← ' + aggregateState.downloadable.length, 'Download changed files in this folder: server to local', scanAvailable && aggregateState.downloadable.length > 0, () => {
-          sendBulk('download', aggregateState.downloadable);
-          switchTab('transfers');
-        }, split.down.length > 0));
+        actions.appendChild(createAction('⇅', 'Smart sync folder: newer side wins (↑' + split.up.length + ' / ↓' + split.down.length + ')', scanAvailable && (split.up.length > 0 || split.down.length > 0), () => runSmartSync(all), false));
         actions.appendChild(createAction('✓', 'Mark equal-size files in sync (timestamps only)', scanAvailable && markable.length > 0, () => sendMarkSynced(all), false));
         actions.appendChild(createAction('⊘', 'Ignore this folder persistently', scanAvailable, () => sendIgnore([child.path]), false));
         center.appendChild(actions);
@@ -1713,8 +1831,9 @@ export class SyncCenterPanel {
           name: child.name,
           path: child.path,
           missingLabel: 'Not in server tree',
-          meta: aggregateState.remote ? aggregateState.remote + ' file' + (aggregateState.remote === 1 ? '' : 's') : ''
+          title: aggregateState.remote ? aggregateState.remote + ' file' + (aggregateState.remote === 1 ? '' : 's') : ''
         }));
+        line.appendChild(createSizeCell(aggregateState.remote ? aggregateState.remote + ' file' + (aggregateState.remote === 1 ? '' : 's') : '', folderDetail));
         line.addEventListener('click', () => {
           if (expanded.has(child.path)) expanded.delete(child.path); else expanded.add(child.path);
           renderCompare();
@@ -1742,7 +1861,7 @@ export class SyncCenterPanel {
         const name = row.path.split('/').pop();
         const attention = row.state !== 'synced';
         const line = document.createElement('div');
-        line.className = 'compare-line' + (attention ? ' attention' : '');
+        line.className = 'compare-line st-' + row.state + (attention ? ' attention' : '');
         line.appendChild(createSideCell({
           exists: hasLocal(row),
           server: false,
@@ -1752,26 +1871,33 @@ export class SyncCenterPanel {
           name,
           path: row.path,
           missingLabel: 'Not on local',
-          meta: hasLocal(row) ? fmtBytes(row.localSize) + (row.localMtime ? ' · ' + fmtDate(row.localMtime) : '') : ''
+          title: hasLocal(row) ? fmtBytes(row.localSize) + (row.localMtime ? ' · ' + fmtDate(row.localMtime) : '') : ''
         }));
+        line.appendChild(createSizeCell(
+          hasLocal(row) ? fmtBytes(row.localSize) : '',
+          hasLocal(row) && row.localMtime ? fmtDate(row.localMtime) : ''
+        ));
 
+        const uploadRecommended = row.state === 'localNewer' || row.state === 'missingRemote';
+        const downloadRecommended = row.state === 'remoteNewer' || row.state === 'missingLocal';
+        const rowRec = uploadRecommended ? 'up' : downloadRecommended ? 'down' : 'skip';
         const center = document.createElement('div');
         center.className = 'center-cell';
         center.appendChild(createSelection([row.path], 'Select ' + row.path));
-        center.appendChild(createStatus(row.label || row.state, stateBucket(row.state), row.path));
+        center.appendChild(createStatus(statusGlyphChar(row.state), 'st-' + row.state, (row.label || row.state) + ' — ' + row.path));
+        center.appendChild(createDirGroup({
+          canDown: scanAvailable && hasRemote(row),
+          canUp: scanAvailable && hasLocal(row),
+          recommended: rowRec,
+          downLabel: 'Download server → local',
+          upLabel: 'Upload local → server',
+          skipLabel: row.state === 'synced' ? 'In sync — no action' : 'No action',
+          onDown: () => { vscode.postMessage({ type: 'row-action', action: 'download', path: row.path }); switchTab('transfers'); },
+          onUp: () => { vscode.postMessage({ type: 'row-action', action: 'upload', path: row.path }); switchTab('transfers'); }
+        }));
         const actions = document.createElement('div');
         actions.className = 'inline-actions';
-        const uploadRecommended = row.state === 'localNewer' || row.state === 'missingRemote';
-        const downloadRecommended = row.state === 'remoteNewer' || row.state === 'missingLocal';
-        actions.appendChild(createAction('→', 'Upload local to server', scanAvailable && hasLocal(row), () => {
-          vscode.postMessage({ type: 'row-action', action: 'upload', path: row.path });
-          switchTab('transfers');
-        }, uploadRecommended));
-        actions.appendChild(createAction('←', 'Download server to local', scanAvailable && hasRemote(row), () => {
-          vscode.postMessage({ type: 'row-action', action: 'download', path: row.path });
-          switchTab('transfers');
-        }, downloadRecommended));
-        actions.appendChild(createAction('Δ', 'Open local and server diff', scanAvailable && hasLocal(row) && hasRemote(row), () => {
+        actions.appendChild(createAction('Δ', 'Open local ↔ server diff', scanAvailable && hasLocal(row) && hasRemote(row), () => {
           vscode.postMessage({ type: 'row-action', action: 'diff', path: row.path });
         }, false));
         actions.appendChild(createAction('✓', 'Mark in sync (equal size; timestamps only)', scanAvailable && markablePaths([row.path]).length > 0, () => sendMarkSynced([row.path]), false));
@@ -1787,8 +1913,12 @@ export class SyncCenterPanel {
           name,
           path: row.path,
           missingLabel: 'Not on server',
-          meta: hasRemote(row) ? fmtBytes(row.remoteSize) + (row.remoteMtime ? ' · ' + fmtDate(row.remoteMtime) : '') : ''
+          title: hasRemote(row) ? fmtBytes(row.remoteSize) + (row.remoteMtime ? ' · ' + fmtDate(row.remoteMtime) : '') : ''
         }));
+        line.appendChild(createSizeCell(
+          hasRemote(row) ? fmtBytes(row.remoteSize) : '',
+          hasRemote(row) && row.remoteMtime ? fmtDate(row.remoteMtime) : ''
+        ));
         line.addEventListener('contextmenu', (event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -1969,6 +2099,7 @@ export class SyncCenterPanel {
       vscode.postMessage({ type: 'bulk-action', action: 'download', paths });
       switchTab('transfers');
     });
+    el('syncShown').addEventListener('click', () => runSmartSync(visibleRows().map((r) => r.path)));
     el('pauseQueue').addEventListener('click', () => vscode.postMessage({ type: 'queue-action', action: queuePaused ? 'resumeAll' : 'pauseAll' }));
     el('clearCompleted').addEventListener('click', () => vscode.postMessage({ type: 'queue-action', action: 'clearCompleted' }));
     el('transferFilter').addEventListener('change', () => { transferPage = 0; renderTransfers(); });

@@ -29,3 +29,15 @@ jobs:
         with:
           files: "*.vsix"
           generate_release_notes: true
+
+      - name: Publish to VS Code Marketplace
+        if: ${{ env.VSCE_PAT != '' }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath "$(ls *.vsix)"
+
+      - name: Marketplace publish skipped
+        if: ${{ env.VSCE_PAT == '' }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: echo "::warning::VSCE_PAT repository secret is not set, so this release was not published to the VS Code Marketplace. Add a Marketplace Personal Access Token as the VSCE_PAT secret (Settings > Secrets and variables > Actions) to enable automatic publishing on tag push."

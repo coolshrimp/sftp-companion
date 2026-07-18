@@ -2,6 +2,12 @@
 
 All notable changes to **SFTP Companion**.
 
+## 0.9.4
+
+- Sync Center Compare view now colors every row by status (in sync/local newer/server newer/local only/server only) with a tinted background and left stripe, instead of a single greyscale glyph.
+- Replaced the hover-only upload/download buttons with an always-visible, GoodSync-style 3-way direction control (download / skip / upload) per row and per folder, with the recommended side pre-highlighted.
+- Added a "Sync Shown" button that syncs every visible out-of-sync file in one action, letting the newer side win per file.
+
 ## 0.9.3
 
 - Reworked Sync Center comparison into paired, row-aligned Local and Server file trees with search, explicit status filters, persistent Ignore, and clearly labeled timestamp-only Mark in sync actions.

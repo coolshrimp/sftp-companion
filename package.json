@@ -2,7 +2,7 @@
   "name": "sftp-companion",
   "displayName": "SFTP Companion - SFTP/FTP/FTPS Sync",
   "description": "Visual SFTP/FTP/FTPS sync — account manager, sync-status file trees, compare view, and a transfer queue with real progress",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "publisher": "coolshrimp",
   "license": "MIT",
   "repository": {
