@@ -9,11 +9,22 @@ Standalone SFTP / FTP / FTPS sync for VS Code — a visual account manager, sync
 
 **[➜ Install from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=coolshrimp.sftp-companion)**
 
-![SFTP Companion — main view](screenshots/ScreenshotMain.png)
+<p align="center">
+  <img src="screenshots/ScreenshotMain.png" alt="SFTP Companion — main view" width="100%">
+</p>
 
-![SFTP Companion — sidebar](screenshots/ScreenshotSidebar.png)
-
-![SFTP Companion — Sync Center](screenshots/ScreenshotSyncCenter.png)
+<table>
+  <tr>
+    <td width="25%" valign="top" align="center">
+      <img src="screenshots/ScreenshotSidebar.png" alt="SFTP Companion — sidebar" width="100%"><br>
+      <sub><b>Sidebar</b> — accounts &amp; sync-status trees</sub>
+    </td>
+    <td width="75%" valign="top" align="center">
+      <img src="screenshots/ScreenshotSyncCenter.png" alt="SFTP Companion — Sync Center" width="100%"><br>
+      <sub><b>Sync Center</b> — paired compare &amp; staged transfers</sub>
+    </td>
+  </tr>
+</table>
 
 ## Features
 
